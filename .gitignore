@@ -1,0 +1,27 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+*.env.local
+*.pem
+*.key
+*.priv
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker / local data
+data/
+minio_data/
+postgres_data/
+stalwart_data/
