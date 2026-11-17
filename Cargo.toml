@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/bmail-crypto",
+    "crates/bmail-types",
+    "crates/bmail-storage",
+    "crates/bmail-chain",
+    "crates/bmail-sdk",
+    "clients/bmail-cli",
+    "programs/bmail-registry",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["B-Mail Contributors"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+bmail-crypto = { path = "crates/bmail-crypto" }
+bmail-types = { path = "crates/bmail-types" }
+bmail-storage = { path = "crates/bmail-storage" }
+bmail-chain = { path = "crates/bmail-chain" }
+bmail-sdk = { path = "crates/bmail-sdk" }
+
+# Cryptography (Solana & E2EE standards)
+ed25519-dalek = { version = "2.1", features = ["rand_core", "serde"] }
+x25519-dalek = { version = "2.0", features = ["static_secrets", "serde"] }
+chacha20poly1305 = { version = "0.10", features = ["alloc"] }
+sha2 = { version = "0.10" }
+hkdf = { version = "0.12" }
+bs58 = { version = "0.5" }
+rand = { version = "0.8" }
+zeroize = { version = "1.7", features = ["derive"] }
+
+# Serialization & Utilities
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+thiserror = { version = "1.0" }
+anyhow = { version = "1.0" }
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.5", features = ["derive"] }

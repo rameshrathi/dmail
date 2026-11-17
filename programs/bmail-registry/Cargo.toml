@@ -1,0 +1,11 @@
+[package]
+name = "bmail-registry"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+bmail-crypto = { workspace = true }
+bmail-types = { workspace = true }
+chrono = { workspace = true }

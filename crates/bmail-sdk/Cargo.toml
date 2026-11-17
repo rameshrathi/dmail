@@ -1,0 +1,17 @@
+[package]
+name = "bmail-sdk"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+bmail-crypto = { workspace = true }
+bmail-types = { workspace = true }
+bmail-storage = { workspace = true }
+bmail-chain = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+rand = { workspace = true }
+chrono = { workspace = true }
