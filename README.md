@@ -1,387 +1,129 @@
-# Decentralized Mail Network (DMN)
+# Blockchain End-to-End Encrypted Mail (B-Mail)
 
-[![Status](https://img.shields.io/badge/status-implementation--baseline-blue.svg)](docs/Plan.md)
+[![Status](https://img.shields.io/badge/status-plan--and--protocol-blue.svg)](Plan.md)
+[![Protocol](https://img.shields.io/badge/protocol-v1.0--POC-green.svg)](Protocol.md)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
-The **Decentralized Mail Network (DMN)** is an open, federated email architecture that brings native client-side End-to-End Encryption (E2EE), portable cryptographic identities, and auditable key transparency to standard Internet email without breaking existing protocols (SMTP, MIME, IMAP, JMAP).
+**B-Mail** is a decentralized, blockchain-native email protocol providing **true End-to-End Encryption (E2EE)**. By using the blockchain as a tamper-proof Public Key Infrastructure (PKI) and notification layer, mail can **only be read (decrypted) by the intended recipient**.
 
 ---
 
-## Table of Contents
-
-1. [Executive Summary](#1-executive-summary)
-2. [How It Works: End-to-End Flow](#2-how-it-works-end-to-end-flow)
-3. [System Architecture](#3-system-architecture)
-4. [Protocol Details](#4-protocol-details)
-   - [Identity Protocol (DID-MAIL)](#41-identity-protocol-did-mail)
-   - [Key Discovery Protocol (KDP)](#42-key-discovery-protocol-kdp)
-   - [Secure Message Envelope (SME)](#43-secure-message-envelope-sme)
-   - [SMTP & MIME Binding](#44-smtp--mime-binding)
-   - [Federation Protocol (DFP)](#45-federation-protocol-dfp)
-5. [Security & Threat Model](#5-security--threat-model)
-6. [Technology Stack](#6-technology-stack)
-7. [Repository Layout](#7-repository-layout)
-8. [Local Development & Quickstart](#8-local-development--quickstart)
-9. [Documentation Index](#9-documentation-index)
-
----
-
-## 1. Executive Summary
-
-Traditional email lacks modern, turnkey end-to-end encryption and relies on centralized trust anchors. DMN bridges modern cryptography with established email infrastructure:
-
-- **Zero Server Plaintext:** Mail transfer agents (MTAs), relays, and storage providers handle only ciphertext envelopes. They never possess Content Encryption Keys (CEKs) or private keys.
-- **Fail-Closed Security:** Messages explicitly marked for encryption never silently downgrade to plaintext under any failure condition.
-- **Standards Compliant:** Transports messages over standard SMTP and stores them in unmodified Stalwart mailboxes accessible via IMAP and JMAP.
-- **Auditable Key Transparency:** Key lifecycle events (enrollment, rotation, revocation) are immutably logged in an append-only Merkle tree, with optional checkpoint commitments anchored on Solana.
-- **Decoupled Blockchain:** Blockchain availability is strictly optional. SMTP delivery continues uninterrupted during blockchain latency or outages.
-
----
-
-## 2. How It Works: End-to-End Flow
+## 1. How It Works
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Alice as Alice (Client A)
-    participant NodeA as Node A (Stalwart)
-    participant DNS as DNS / KDP Resolver
-    participant NodeB as Node B (Stalwart)
-    actor Bob as Bob (Client B)
+    actor Alice as Alice (Sender)
+    participant Chain as Blockchain (PKI & Events)
+    participant Storage as Decentralized Storage (IPFS)
+    actor Bob as Bob (Recipient)
 
-    Note over Alice,Bob: 1. Identity Registration & Key Publication
-    Bob->>Bob: Generate Device Keypairs (Ed25519 & X25519)
-    Bob->>DNS: Publish Signed Identity Record & Merkle Leaf
+    Note over Bob,Chain: 1. Setup & Key Registration
+    Bob->>Bob: Generate Wallet (Ed25519) & Encryption Keypair (X25519)
+    Bob->>Chain: Register Public Encryption Key (Pk_enc) on-chain
 
-    Note over Alice,Bob: 2. Recipient Discovery & Envelope Creation
-    Alice->>DNS: Query Bob's domain capability & Identity Record
-    DNS-->>Alice: Return Bob's Public Encryption Keys & Proof
-    Alice->>Alice: Generate fresh CEK & AEAD-encrypt MIME payload
-    Alice->>Alice: Wrap CEK using HPKE for Bob's active devices
-    Alice->>Alice: Sign canonical manifest with Ed25519 signing key
+    Note over Alice,Bob: 2. Message Composition & Encryption
+    Alice->>Chain: Lookup Bob's Public Encryption Key (Pk_enc)
+    Chain-->>Alice: Return Bob's verified Pk_enc
+    Alice->>Alice: Generate fresh 256-bit CEK & encrypt payload (ChaCha20-Poly1305)
+    Alice->>Alice: Wrap CEK using HPKE-X25519 for Bob
+    Alice->>Storage: Upload encrypted ciphertext blob
+    Storage-->>Alice: Return Content URI (CID)
+    Alice->>Alice: Sign manifest with Alice's Wallet Private Key
 
-    Note over Alice,Bob: 3. SMTP Transport & Mailbox Storage
-    Alice->>NodeA: Submit multipart/encrypted MIME via SMTP (port 587)
-    NodeA->>NodeB: Relay encrypted envelope via Server-to-Server SMTP (port 25)
-    NodeB->>NodeB: Store ciphertext envelope in Bob's mailbox (No Decryption)
+    Note over Alice,Chain: 3. On-Chain Dispatch
+    Alice->>Chain: Submit dispatch transaction (wrapped_cek, storage_uri, payload_hash, signature)
+    Chain-->>Bob: Emit on-chain event / mailbox notification
 
-    Note over Alice,Bob: 4. Mailbox Retrieval & Local Decryption
-    Bob->>NodeB: Fetch message via IMAP / JMAP
-    Bob->>Bob: Verify Alice's signature over canonical manifest
-    Bob->>Bob: Verify ciphertext SHA-256 digest
-    Bob->>Bob: Unwrap CEK using device X25519 private key
-    Bob->>Bob: Decrypt payload with CEK & render MIME safely
+    Note over Bob,Storage: 4. Retrieval & Local Decryption
+    Bob->>Storage: Download ciphertext from storage URI
+    Bob->>Bob: Verify payload hash against on-chain hash
+    Bob->>Bob: Verify Alice's signature using her on-chain wallet address
+    Bob->>Bob: Decapsulate CEK using Bob's private encryption key (Sk_enc)
+    Bob->>Bob: Decrypt payload using CEK -> Plaintext Mail Displayed!
 ```
-
-### Step-by-Step Workflow
-
-1. **Identity & Device Enrollment:**
-   - The user generates an Identity Authority Key, a Device Signing Key (Ed25519), and a Device Encryption Key (X25519) locally on their endpoint.
-   - The client proves control of the email address/domain and signs an identity record that binds the public keys to the identity.
-   - The record is appended to the operator's Key Transparency Log and published to the directory.
-2. **Key Discovery:**
-   - When composing to `bob@domain-b.org`, Alice's client queries the DNS TXT record `_dmn.domain-b.org` (or fallback `/.well-known/dmn`).
-   - Alice fetches Bob's verified identity record, checks active devices, and verifies the transparency inclusion proof.
-3. **Payload Encryption & Manifest Signing:**
-   - Alice's client generates a cryptographically secure 32-byte Content Encryption Key (CEK).
-   - The payload (confidential subject, text, HTML, and attachments) is encrypted using ChaCha20-Poly1305.
-   - For every authorized device registered to Bob (and CC recipients), the CEK is encapsulated using HPKE (RFC 9180 Base Mode with X25519).
-   - A canonical manifest (binding version, message ID, ciphertext hash, sender key ID) is generated via Deterministic CBOR and signed with Alice's Ed25519 key.
-4. **SMTP Carriage:**
-   - The resulting Secure Message Envelope is packed as a `multipart/encrypted` MIME message with neutral outer headers (`Subject: Encrypted Message`).
-   - Alice's client submits the message to Node A via standard authenticated SMTP.
-   - Node A routes the message over standard SMTP to Node B.
-5. **Decryption on Recipient Device:**
-   - Node B stores the encrypted MIME message in Bob's mailbox without decrypting it.
-   - Bob's client retrieves the message over IMAP or JMAP.
-   - Bob's client verifies Alice's manifest signature, confirms the ciphertext hash, unwraps the CEK using its local private key, and decrypts the payload.
 
 ---
 
-## 3. System Architecture
+## 2. Key Architecture Principles
 
-```text
-+-----------------------------------------------------------+
-|                       User Clients                         |
-|             CLI / Web Client / Mobile Endpoints            |
-|                                                           |
-|  [Identity Vault]  [Encrypt & Sign]  [Decrypt & Verify]   |
-+-------------------------------+---------------------------+
-                                |
-                     HTTPS / JMAP / SMTP submission
-                                |
-+-------------------------------v---------------------------+
-|                    DMN Mail Node                           |
-|                                                           |
-|  SMTP MTA | IMAP/JMAP | Mailbox | Queue | Policy/Spam      |
-|                                                           |
-|  +------------------- DMN Services ---------------------+  |
-|  | Identity resolver | Key cache | Federation adapter  |  |
-|  | E2EE MIME handler | Delivery state | Notifications   |  |
-|  +------------------------------------------------------+  |
-+-------------+------------------+--------------------------+
-              |                  |
-       +------v------+    +------v----------------+
-       | PostgreSQL  |    | Encrypted Object Store|
-       | metadata    |    | MIME blobs/attachments|
-       +-------------+    +-----------------------+
-              |
-       +------v-----------------------------------+
-       | Identity & Trust Infrastructure           |
-       | DNS / DNSSEC / Key Directory / Merkle Log|
-       | Optional Solana Identity Registry        |
-       +-------------------------------------------+
-```
+### 2.1 Cryptographic Separation of Keys
+In B-Mail, wallet signing keys and message encryption keys are strictly separated:
+- **Blockchain Wallet Key (`Ed25519`):** Authorizes transactions, registers keys, and signs outgoing mail manifests for sender authentication.
+- **Device Encryption Key (`X25519`):** Diffie-Hellman / HPKE asymmetric key used solely to wrap Content Encryption Keys (CEKs). **The private encryption key NEVER leaves the user's local device.**
 
-### Component Responsibilities
+### 2.2 End-to-End Encryption (E2EE) Mechanism
+1. Every message has a unique, cryptographically random 256-bit **Content Encryption Key (CEK)**.
+2. The payload (subject, body, attachments) is encrypted using **ChaCha20-Poly1305** authenticated encryption.
+3. The CEK is encapsulated using **HPKE (RFC 9180)** using the recipient's registered public encryption key (`Pk_enc`).
+4. **Mathematical Guarantee:** Only the holder of the recipient's private encryption key (`Sk_enc`) can unwrap the CEK and decrypt the payload. Validators, miners, storage relays, and network eavesdroppers cannot access the message content.
 
-| Component | Responsibility | Technical Implementation |
+### 2.3 Decentralized PKI (No Central Authority)
+Traditional encryption systems suffer from key-substitution attacks (MITM). In B-Mail:
+- Public keys are stored directly in smart contract state on the blockchain.
+- Anyone can verify key ownership and history transparently without relying on centralized certificate authorities.
+
+---
+
+## 3. Security Properties & Threat Model
+
+| Security Property | Mechanism | Threat Prevented |
 |---|---|---|
-| **Client SDK** | Key generation, envelope creation, signing, unwrapping, and decryption. | Rust library (`dmn-client-sdk`) |
-| **Mail Server** | Standard SMTP submission, queue routing, MX relay, and IMAP/JMAP mailboxes. | Stalwart Mail Server (unmodified) |
-| **Identity Service** | Domain challenge verification, identity record registration, and key lookup. | Rust service + PostgreSQL |
-| **Transparency Log**| Append-only Merkle tree storing key lifecycle events and inclusion proofs. | Rust Merkle service |
-| **Object Store** | Storage of large encrypted message bodies and encrypted attachments. | S3-compatible storage (MinIO locally) |
-| **Trust Anchor** | Optional public witness for periodic Merkle roots and domain authorities. | Solana Program (Rust / Anchor) |
+| **End-to-End Confidentiality** | HPKE (X25519) + ChaCha20-Poly1305 | Blockchain nodes, miners, storage hosts, and network observers cannot read mail. |
+| **Sender Authenticity** | Wallet digital signatures (`Ed25519`) | Prevents mail forgery, spoofing, and sender impersonation. |
+| **Message Integrity** | Poly1305 AEAD tag + SHA-256 payload digest | Any alteration of ciphertext or storage payload causes immediate rejection. |
+| **Tamper-Proof Keys** | Blockchain consensus state | Prevents Man-in-the-Middle (MITM) public key substitution. |
+| **Zero Plaintext Leakage** | All sensitive metadata (Subject, Body, Attachments) encrypted inside payload | Only sender address, recipient address, and timestamp are visible on-chain. |
+| **Fail-Closed Security** | Strict protocol verification | If recipient is unregistered or signatures fail, the message is never sent in plaintext. |
 
 ---
 
-## 4. Protocol Details
-
-### 4.1 Identity Protocol (DID-MAIL)
-
-Identities represent human-readable email addresses (`local_part@domain.tld`). Key purposes are strictly separated:
-- **Identity Signing Key:** Authorizes new devices and overall identity updates.
-- **Device Signing Key (Ed25519):** Signs message manifests and client requests.
-- **Device Encryption Key (X25519):** Receives encapsulated CEKs via HPKE.
-
-```json
-{
-  "protocol": "did-mail/1",
-  "identity_id": "base64url-32-bytes",
-  "address": "bob@domain-b.org",
-  "domain": "domain-b.org",
-  "authority_key_id": "auth-key-01",
-  "identity_signing_keys": [
-    {
-      "key_id": "auth-key-01",
-      "algorithm": "Ed25519",
-      "public_key": "base64url-32-bytes",
-      "status": "active"
-    }
-  ],
-  "devices": [
-    {
-      "device_id": "base64url-16-bytes",
-      "device_signing_key": {
-        "key_id": "dev-sig-01",
-        "algorithm": "Ed25519",
-        "public_key": "base64url-32-bytes"
-      },
-      "device_encryption_key": {
-        "key_id": "dev-enc-01",
-        "algorithm": "HPKE-X25519",
-        "public_key": "base64url-32-bytes"
-      },
-      "status": "active"
-    }
-  ],
-  "version": 1,
-  "created_at": 1731866400,
-  "authority_signature": "base64url-64-bytes"
-}
-```
-
-### 4.2 Key Discovery Protocol (KDP)
-
-1. **DNS TXT Discovery:** Resolves `_dmn.<domain>`:
-   ```text
-   v=DMN1; idp=https://identity.domain-b.org/v1; ktl=https://ktl.domain-b.org/v1
-   ```
-2. **Well-Known Fallback:** Queries `https://<domain>/.well-known/dmn` over HTTPS.
-3. **Record Validation:** Verifies the domain authority signature, checks expiry, and confirms the Merkle transparency inclusion proof.
-
-### 4.3 Secure Message Envelope (SME)
-
-The native envelope binds manifest commitments, recipient wrapped keys, and ciphertext:
-
-```json
-{
-  "protocol": "dmn-sme/1",
-  "message_id": "base64url-16-or-32-bytes",
-  "created_at": 1731866400,
-  "sender": {
-    "identity_id": "base64url-32-bytes",
-    "key_id": "dev-sig-01"
-  },
-  "crypto": {
-    "content_algorithm": "ChaCha20-Poly1305",
-    "key_wrap_algorithm": "HPKE-DHKEM-X25519-HKDF-SHA256-ChaCha20Poly1305"
-  },
-  "content": {
-    "content_type": "application/vnd.dmn.mime",
-    "nonce": "base64url-12-bytes",
-    "ciphertext": "base64url-bytes",
-    "ciphertext_hash": "base64url-sha256"
-  },
-  "recipient_envelopes": [
-    {
-      "recipient_identity_id": "base64url-32-bytes",
-      "device_id": "base64url-16-bytes",
-      "key_id": "dev-enc-01",
-      "encapsulation": "base64url-32-bytes",
-      "wrapped_cek": "base64url-bytes"
-    }
-  ],
-  "signature": {
-    "algorithm": "Ed25519",
-    "key_id": "dev-sig-01",
-    "value": "base64url-64-bytes"
-  }
-}
-```
-
-*Note: Signatures and hashes are evaluated strictly over **Deterministic CBOR (RFC 8949)** byte representations, never raw JSON.*
-
-### 4.4 SMTP & MIME Binding
-
-- Carried inside standard MIME:
-  ```http
-  Content-Type: multipart/encrypted; protocol="application/vnd.dmn.envelope"; boundary="--DMN_BOUNDARY"
-  ```
-- **Outer Headers:** Contain minimal routing information (`From`, `To`, `Message-ID`, `Date`). Outer subject is masked (`Subject: Encrypted Message`).
-- **Inner Payload:** Canonical MIME structure containing confidential subject, multipart alternative bodies (text/plain, text/html), and attachments.
-- **OpenPGP/MIME:** Supported as a parallel interoperability profile (`multipart/encrypted; protocol="application/pgp-encrypted"`).
-
-### 4.5 Federation Protocol (DFP)
-
-- Operates over standard SMTP (RFC 5321).
-- **Delivery State Machine:** `CREATED -> ENCRYPTED -> QUEUED -> SUBMITTED -> ACCEPTED_BY_REMOTE -> DELIVERED_TO_MAILBOX`.
-- **Replay Protection:** Unique `message_id` tracking on the recipient node prevents duplicate injection attacks.
-- **BCC Confidentiality:** Split delivery ensures BCC recipients receive an independent cryptographic envelope with their own CEK and manifest, preventing recipient enumeration.
-
----
-
-## 5. Security & Threat Model
-
-| Threat | Mitigation Strategy |
-|---|---|
-| **Eavesdropping by Mail Relays / MTAs** | Payloads and attachments are encrypted client-side with fresh CEKs. Servers see only ciphertext. |
-| **Storage Service Data Breach** | S3/MinIO stores only ciphertext blobs authenticated via AEAD tags. |
-| **Ciphertext Modification** | AEAD authentication tags (Poly1305) and SHA-256 manifest commitments fail closed upon tampering. |
-| **Sender Impersonation** | Sender Ed25519 digital signature covers the deterministic manifest and ciphertext hash. |
-| **Rogue Public Key Insertion** | Append-only Merkle Key Transparency Log detects unauthorized key modifications or split-views. |
-| **Downgrade Attacks** | Protocol negotiation enforces mandatory crypto suites. Fallback to unencrypted plaintext requires explicit user consent. |
-| **Secret Leakage in Logs** | All secret key types implement zeroization on drop and format as `[REDACTED]` in `Debug` and logs. |
-
-*See [docs/threat-model.md](docs/threat-model.md) for full threat analysis and residual risk disclosures.*
-
----
-
-## 6. Technology Stack
-
-| Layer | Primary Technology | Standards / Normative Specs |
-|---|---|---|
-| **Core Workspace** | Rust (2021 edition) | Cargo modular workspace |
-| **Digital Signatures** | Ed25519 (`ed25519-dalek`) | RFC 8032 |
-| **Public-Key Key Wrapping** | HPKE (`DHKEM(X25519) + ChaCha20Poly1305`) | RFC 9180 |
-| **Symmetric Encryption** | ChaCha20-Poly1305 & AES-256-GCM | RFC 8439 / NIST SP 800-38D |
-| **Canonical Serialization**| Deterministic CBOR | RFC 8949 Section 4.2.1 |
-| **Mail Server Foundation** | Stalwart Mail Server | RFC 5321 (SMTP), RFC 9051 (IMAP), RFC 8620 (JMAP) |
-| **Metadata Database** | PostgreSQL 16 | Relational store for identities, devices, and queue states |
-| **Object Store** | MinIO (local dev) / S3-compatible | Encrypted blobs and attachments |
-| **Optional Blockchain** | Solana Program | Optional on-chain checkpoint commitments |
-
----
-
-## 7. Repository Layout
+## 4. Repository Layout
 
 ```text
 .
-├── README.md                                  # This documentation
-├── rust-toolchain.toml                        # Pinned Rust toolchain
-├── rustfmt.toml                               # Code formatting rules
-├── Cargo.toml                                 # Cargo workspace definition
-├── .env.example                               # Local environment configuration template
-├── docs/                                      # Normative documentation and records
-│   ├── README.md                              # Documentation directory index
-│   ├── Plan.md                                # Master engineering execution plan
-│   ├── HLD.md                                 # High-Level Design document
-│   ├── Protocol.md                            # Detailed Protocol Specification
-│   ├── threat-model.md                        # Threat model and security analysis
-│   ├── deployment.md                          # Local deployment and operations guide
-│   ├── adr/                                   # Architecture Decision Records (ADRs 0001-0008)
-│   └── test-vectors/                          # Cryptographic test fixtures
-├── crates/                                    # Modular Rust workspace crates
-│   ├── dmn-types/                             # Validated protocol types and identifiers
-│   ├── dmn-encoding/                          # Deterministic CBOR & canonical serialization
-│   ├── dmn-crypto/                            # HPKE, AEAD, Ed25519, and key generation
-│   ├── dmn-identity/                          # Identity records, resolution, and device lifecycle
-│   ├── dmn-envelope/                          # Secure Message Envelope (SME) construction
-│   ├── dmn-mime/                              # MIME generator, parser, and OpenPGP adapters
-│   ├── dmn-transparency/                      # Merkle log, inclusion & consistency proofs
-│   └── dmn-client-sdk/                        # Unified client SDK for E2EE operations
-├── services/                                  # Backend microservices
-│   ├── identity-api/                          # REST/gRPC identity directory service
-│   └── transparency-api/                      # Key transparency Merkle service
-├── clients/                                   # Client implementations
-│   └── cli/                                   # Reference command-line client
-└── deploy/                                    # Deployment orchestration
-    └── compose/                               # Local Docker Compose setup
+├── README.md                      # High-level architecture and quickstart (this file)
+├── Protocol.md                    # Normative protocol specification
+├── Plan.md                        # Master implementation and execution plan
+├── rust-toolchain.toml            # Pinned Rust compiler toolchain
+├── Cargo.toml                     # Cargo workspace definition
+│
+├── crates/
+│   ├── bmail-crypto/              # X25519, Ed25519, HPKE CEK wrapping, ChaCha20-Poly1305
+│   ├── bmail-types/               # Protocol identifiers, envelopes, serialization
+│   ├── bmail-storage/             # Content-addressed encrypted payload storage
+│   ├── bmail-chain/               # Smart contract / blockchain interface & local simulator
+│   └── bmail-sdk/                 # High-level client SDK orchestrating E2EE workflow
+│
+├── programs/
+│   └── bmail-registry/            # On-chain smart contract (Solana Anchor / EVM)
+│
+├── clients/
+│   └── bmail-cli/                 # Reference CLI tool (init, register, send, inbox, read)
+│
+└── tests/
+    └── e2e_test.rs                # End-to-end integration test proving E2EE security
 ```
 
 ---
 
-## 8. Local Development & Quickstart
+## 5. Implementation Roadmap
 
-### Prerequisites
+The implementation follows the structured phases defined in [Plan.md](Plan.md):
 
-- **Rust:** Stable toolchain (`rustup install stable`)
-- **Docker & Docker Compose:** v2.20+
+- [ ] **Phase 0:** Workspace Bootstrap & Environment Controls
+- [ ] **Phase 1:** Cryptographic Engine (`bmail-crypto`: X25519, HPKE, ChaCha20-Poly1305)
+- [ ] **Phase 2:** Protocol Types & Wire Serialization (`bmail-types`)
+- [ ] **Phase 3:** Blockchain Interface & Smart Contract Registry (`bmail-chain`)
+- [ ] **Phase 4:** Content-Addressed Storage Adapter (`bmail-storage`)
+- [ ] **Phase 5:** Unified Client SDK (`bmail-sdk`)
+- [ ] **Phase 6:** Reference CLI & Automated E2E Security Test Suite (`bmail-cli`)
 
-### Starting Local Services
-
-```bash
-# 1. Copy environment variables
-cp .env.example .env
-
-# 2. Launch PostgreSQL, MinIO, and Stalwart
-docker compose -f deploy/compose/docker-compose.yml up -d
-
-# 3. Check container health
-docker compose -f deploy/compose/docker-compose.yml ps
-```
-
-### Building & Running Verification Tests
-
-```bash
-# Check code formatting
-cargo fmt --all -- --check
-
-# Run linter with zero warnings permitted
-cargo clippy --workspace --all-targets -- -D warnings
-
-# Execute workspace unit and integration tests
-cargo test --workspace
-```
+Refer to [Plan.md](Plan.md) for detailed task requirements and acceptance criteria.
 
 ---
 
-## 9. Documentation Index
+## 6. Normative Documents
 
-Detailed architectural and engineering documentation is maintained in `docs/`:
-
-- [docs/Plan.md](docs/Plan.md) — Master Implementation Plan & Phase Gates.
-- [docs/HLD.md](docs/HLD.md) — System Architecture & Trust Boundaries.
-- [docs/Protocol.md](docs/Protocol.md) — Full Protocol Specification.
-- [docs/threat-model.md](docs/threat-model.md) — Threat Model & Security Controls.
-- [docs/deployment.md](docs/deployment.md) — Local Development & Deployment Guide.
-- [docs/adr/](docs/adr/) — Architecture Decision Records:
-  - [ADR 0001: Canonical Serialization](docs/adr/0001-canonical-serialization.md)
-  - [ADR 0002: Mandatory Cryptographic Suites](docs/adr/0002-cryptographic-suite.md)
-  - [ADR 0003: Native Secure Message Envelope and MIME Binding](docs/adr/0003-native-envelope-and-mime-binding.md)
-  - [ADR 0004: Identity Ownership and Device Lifecycle](docs/adr/0004-identity-ownership-and-recovery.md)
-  - [ADR 0005: BCC Privacy and Recipient Confidentiality](docs/adr/0005-bcc-privacy.md)
-  - [ADR 0006: DNS and Well-Known Capability Discovery](docs/adr/0006-dns-discovery.md)
-  - [ADR 0007: Mail Server Integration Architecture (Stalwart)](docs/adr/0007-mail-server-integration.md)
-  - [ADR 0008: Blockchain Account Authority (Solana)](docs/adr/0008-blockchain-account-authority.md)
+- [Protocol.md](Protocol.md) — Comprehensive technical protocol specification.
+- [Plan.md](Plan.md) — Step-by-step engineering execution plan.

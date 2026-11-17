@@ -1,7 +1,11 @@
-# Rust build artifacts
+# Build artifacts
 target/
-**/*.rs.bk
-*.pdb
+dist/
+build/
+*.rs.bk
+
+# Dependencies
+node_modules/
 
 # OS artifacts
 .DS_Store
@@ -13,15 +17,12 @@ Thumbs.db
 *.pem
 *.key
 *.priv
+id.json
+wallet.json
+test-ledger/
 
 # IDE and editors
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# Docker / local data
-data/
-minio_data/
-postgres_data/
-stalwart_data/
