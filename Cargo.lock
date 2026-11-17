@@ -99,89 +99,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bmail-chain"
-version = "0.1.0"
-dependencies = [
- "bmail-crypto",
- "bmail-types",
- "chrono",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "bmail-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bmail-chain",
- "bmail-crypto",
- "bmail-sdk",
- "bmail-storage",
- "bmail-types",
- "clap",
- "serde_json",
-]
-
-[[package]]
-name = "bmail-crypto"
-version = "0.1.0"
-dependencies = [
- "bs58",
- "chacha20poly1305",
- "ed25519-dalek",
- "hkdf",
- "rand",
- "serde",
- "sha2",
- "thiserror",
- "x25519-dalek",
- "zeroize",
-]
-
-[[package]]
-name = "bmail-registry"
-version = "0.1.0"
-dependencies = [
- "bmail-crypto",
- "bmail-types",
- "chrono",
-]
-
-[[package]]
-name = "bmail-sdk"
-version = "0.1.0"
-dependencies = [
- "bmail-chain",
- "bmail-crypto",
- "bmail-storage",
- "bmail-types",
- "chrono",
- "rand",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "bmail-storage"
-version = "0.1.0"
-dependencies = [
- "bmail-crypto",
- "thiserror",
-]
-
-[[package]]
-name = "bmail-types"
-version = "0.1.0"
-dependencies = [
- "bmail-crypto",
- "bs58",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "bs58"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -386,6 +303,89 @@ dependencies = [
  "block-buffer",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "dmail-chain"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "dmail-crypto",
+ "dmail-types",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "dmail-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "dmail-chain",
+ "dmail-crypto",
+ "dmail-sdk",
+ "dmail-storage",
+ "dmail-types",
+ "serde_json",
+]
+
+[[package]]
+name = "dmail-crypto"
+version = "0.1.0"
+dependencies = [
+ "bs58",
+ "chacha20poly1305",
+ "ed25519-dalek",
+ "hkdf",
+ "rand",
+ "serde",
+ "sha2",
+ "thiserror",
+ "x25519-dalek",
+ "zeroize",
+]
+
+[[package]]
+name = "dmail-registry"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "dmail-crypto",
+ "dmail-types",
+]
+
+[[package]]
+name = "dmail-sdk"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "dmail-chain",
+ "dmail-crypto",
+ "dmail-storage",
+ "dmail-types",
+ "rand",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "dmail-storage"
+version = "0.1.0"
+dependencies = [
+ "dmail-crypto",
+ "thiserror",
+]
+
+[[package]]
+name = "dmail-types"
+version = "0.1.0"
+dependencies = [
+ "bs58",
+ "dmail-crypto",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

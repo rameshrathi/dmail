@@ -1,10 +1,10 @@
-# Blockchain End-to-End Encrypted Mail (B-Mail)
+# Blockchain End-to-End Encrypted Mail (D-Mail)
 
 [![Status](https://img.shields.io/badge/status-plan--and--protocol-blue.svg)](Plan.md)
 [![Protocol](https://img.shields.io/badge/protocol-v1.0--POC-green.svg)](Protocol.md)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
-**B-Mail** is a decentralized, blockchain-native email protocol providing **true End-to-End Encryption (E2EE)**. By using the blockchain as a tamper-proof Public Key Infrastructure (PKI) and notification layer, mail can **only be read (decrypted) by the intended recipient**.
+**D-Mail** is a decentralized, blockchain-native email protocol providing **true End-to-End Encryption (E2EE)**. By using the blockchain as a tamper-proof Public Key Infrastructure (PKI) and notification layer, mail can **only be read (decrypted) by the intended recipient**.
 
 ---
 
@@ -48,7 +48,7 @@ sequenceDiagram
 ## 2. Key Architecture Principles
 
 ### 2.1 Cryptographic Separation of Keys
-In B-Mail, wallet signing keys and message encryption keys are strictly separated:
+In D-Mail, wallet signing keys and message encryption keys are strictly separated:
 - **Blockchain Wallet Key (`Ed25519`):** Authorizes transactions, registers keys, and signs outgoing mail manifests for sender authentication.
 - **Device Encryption Key (`X25519`):** Diffie-Hellman / HPKE asymmetric key used solely to wrap Content Encryption Keys (CEKs). **The private encryption key NEVER leaves the user's local device.**
 
@@ -59,7 +59,7 @@ In B-Mail, wallet signing keys and message encryption keys are strictly separate
 4. **Mathematical Guarantee:** Only the holder of the recipient's private encryption key (`Sk_enc`) can unwrap the CEK and decrypt the payload. Validators, miners, storage relays, and network eavesdroppers cannot access the message content.
 
 ### 2.3 Decentralized PKI (No Central Authority)
-Traditional encryption systems suffer from key-substitution attacks (MITM). In B-Mail:
+Traditional encryption systems suffer from key-substitution attacks (MITM). In D-Mail:
 - Public keys are stored directly in smart contract state on the blockchain.
 - Anyone can verify key ownership and history transparently without relying on centralized certificate authorities.
 
@@ -89,17 +89,17 @@ Traditional encryption systems suffer from key-substitution attacks (MITM). In B
 ├── Cargo.toml                     # Cargo workspace definition
 │
 ├── crates/
-│   ├── bmail-crypto/              # X25519, Ed25519, HPKE CEK wrapping, ChaCha20-Poly1305
-│   ├── bmail-types/               # Protocol identifiers, envelopes, serialization
-│   ├── bmail-storage/             # Content-addressed encrypted payload storage
-│   ├── bmail-chain/               # Smart contract / blockchain interface & local simulator
-│   └── bmail-sdk/                 # High-level client SDK orchestrating E2EE workflow
+│   ├── dmail-crypto/              # X25519, Ed25519, HPKE CEK wrapping, ChaCha20-Poly1305
+│   ├── dmail-types/               # Protocol identifiers, envelopes, serialization
+│   ├── dmail-storage/             # Content-addressed encrypted payload storage
+│   ├── dmail-chain/               # Smart contract / blockchain interface & local simulator
+│   └── dmail-sdk/                 # High-level client SDK orchestrating E2EE workflow
 │
 ├── programs/
-│   └── bmail-registry/            # On-chain smart contract (Solana Anchor / EVM)
+│   └── dmail-registry/            # On-chain smart contract (Solana Anchor / EVM)
 │
 ├── clients/
-│   └── bmail-cli/                 # Reference CLI tool (init, register, send, inbox, read)
+│   └── dmail-cli/                 # Reference CLI tool (init, register, send, inbox, read)
 │
 └── tests/
     └── e2e_test.rs                # End-to-end integration test proving E2EE security
@@ -112,12 +112,12 @@ Traditional encryption systems suffer from key-substitution attacks (MITM). In B
 The implementation follows the structured phases defined in [Plan.md](Plan.md):
 
 - [ ] **Phase 0:** Workspace Bootstrap & Environment Controls
-- [ ] **Phase 1:** Cryptographic Engine (`bmail-crypto`: X25519, HPKE, ChaCha20-Poly1305)
-- [ ] **Phase 2:** Protocol Types & Wire Serialization (`bmail-types`)
-- [ ] **Phase 3:** Blockchain Interface & Smart Contract Registry (`bmail-chain`)
-- [ ] **Phase 4:** Content-Addressed Storage Adapter (`bmail-storage`)
-- [ ] **Phase 5:** Unified Client SDK (`bmail-sdk`)
-- [ ] **Phase 6:** Reference CLI & Automated E2E Security Test Suite (`bmail-cli`)
+- [ ] **Phase 1:** Cryptographic Engine (`dmail-crypto`: X25519, HPKE, ChaCha20-Poly1305)
+- [ ] **Phase 2:** Protocol Types & Wire Serialization (`dmail-types`)
+- [ ] **Phase 3:** Blockchain Interface & Smart Contract Registry (`dmail-chain`)
+- [ ] **Phase 4:** Content-Addressed Storage Adapter (`dmail-storage`)
+- [ ] **Phase 5:** Unified Client SDK (`dmail-sdk`)
+- [ ] **Phase 6:** Reference CLI & Automated E2E Security Test Suite (`dmail-cli`)
 
 Refer to [Plan.md](Plan.md) for detailed task requirements and acceptance criteria.
 
@@ -127,7 +127,7 @@ Refer to [Plan.md](Plan.md) for detailed task requirements and acceptance criter
 To run the full multi-party E2EE demonstration (Alice sends confidential mail to Bob, Bob decrypts on his device, and an unauthorized observer Charlie fails to decrypt):
 
 ```bash
-cargo run -p bmail-cli -- demo
+cargo run -p dmail-cli -- demo
 ```
 
 ### Running All Unit and Integration Tests
@@ -142,7 +142,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 ### Generating a Solana-Compatible Wallet
 ```bash
-cargo run -p bmail-cli -- generate-wallet
+cargo run -p dmail-cli -- generate-wallet
 ```
 
 ---

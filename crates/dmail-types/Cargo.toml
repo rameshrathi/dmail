@@ -1,0 +1,12 @@
+[package]
+name = "dmail-types"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+dmail-crypto = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+bs58 = { workspace = true }

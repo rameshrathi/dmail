@@ -1,13 +1,13 @@
-# Blockchain End-to-End Encrypted Mail Protocol (B-Mail)
+# Blockchain End-to-End Encrypted Mail Protocol (D-Mail)
 ## Protocol Specification — v1.0 POC
 
 ---
 
 ## 1. Executive Overview
 
-**B-Mail** is a decentralized, blockchain-native email and messaging protocol. It eliminates centralized email servers, third-party certificate authorities, and cleartext mail transfer agents (MTAs). 
+**D-Mail** is a decentralized, blockchain-native email and messaging protocol. It eliminates centralized email servers, third-party certificate authorities, and cleartext mail transfer agents (MTAs). 
 
-In B-Mail:
+In D-Mail:
 - **Identity is cryptographic:** Every user account is identified by their blockchain address (e.g., Solana public key or Ethereum address).
 - **Encryption is end-to-end (E2EE):** All mail contents (subject, body, attachments, metadata) are encrypted on the sender's client device before transmission.
 - **Only the intended recipient can read the mail:** The Content Encryption Key (CEK) is wrapped exclusively for the recipient's public encryption key using modern asymmetric cryptography (HPKE / X25519).
@@ -57,7 +57,7 @@ Clients support two methods of establishing the encryption keypair:
 - **Method A (Deterministic Wallet Derivation):**
   The user's blockchain wallet signs a specific domain separation message:
   ```text
-  seed = HKDF-SHA256(wallet.sign("B-MAIL-ENCRYPTION-KEY-V1"), salt="bmail-salt", info="x25519-seed")
+  seed = HKDF-SHA256(wallet.sign("D-MAIL-ENCRYPTION-KEY-V1"), salt="dmail-salt", info="x25519-seed")
   (Sk_enc, Pk_enc) = X25519_DeriveKeyPair(seed)
   ```
   *Benefit:* Allows the user to restore their encryption key on any device simply by connecting their wallet.
@@ -181,7 +181,7 @@ pub struct MailDispatchEvent {
 - **Encapsulation:**
   1. Sender generates ephemeral keypair `(Sk_eph, Pk_eph)`.
   2. Computes shared secret via `X25519(Sk_eph, Recipient_Pk_enc)`.
-  3. Derives encryption key via `HKDF-SHA256` with info string `"B-MAIL-CEK-WRAP-V1"`.
+  3. Derives encryption key via `HKDF-SHA256` with info string `"D-MAIL-CEK-WRAP-V1"`.
   4. Encrypts the 32-byte `CEK` using the derived key.
 - **Output:** `(Pk_eph [32 bytes], Wrapped_CEK [48 bytes])`.
 

@@ -1,7 +1,7 @@
-# Blockchain End-to-End Encrypted Mail POC (B-Mail)
+# Blockchain End-to-End Encrypted Mail POC (D-Mail)
 ## Master Implementation & Execution Plan
 
-**Project:** Blockchain E2EE Mail POC (B-Mail)  
+**Project:** Blockchain E2EE Mail POC (D-Mail)  
 **Plan Version:** 1.0  
 **Status:** Ready for Execution  
 **Normative Reference:** `Protocol.md`  
@@ -24,7 +24,7 @@
 ## 2. Proposed Architecture & Repository Layout
 
 ```text
-bmail/
+dmail/
 ├── README.md                      # High-level overview, architecture, quickstart
 ├── Protocol.md                    # Normative protocol specification
 ├── Plan.md                        # This execution plan
@@ -32,17 +32,17 @@ bmail/
 ├── Cargo.toml                     # Cargo workspace definition
 │
 ├── crates/
-│   ├── bmail-crypto/              # X25519, Ed25519, HPKE CEK wrapping, ChaCha20-Poly1305
-│   ├── bmail-types/               # Protocol identifiers, envelopes, serialization
-│   ├── bmail-storage/             # Content-addressed encrypted payload storage (IPFS / local)
-│   ├── bmail-chain/               # Smart contract / blockchain interface & local simulator
-│   └── bmail-sdk/                 # High-level client SDK orchestrating E2EE workflow
+│   ├── dmail-crypto/              # X25519, Ed25519, HPKE CEK wrapping, ChaCha20-Poly1305
+│   ├── dmail-types/               # Protocol identifiers, envelopes, serialization
+│   ├── dmail-storage/             # Content-addressed encrypted payload storage (IPFS / local)
+│   ├── dmail-chain/               # Smart contract / blockchain interface & local simulator
+│   └── dmail-sdk/                 # High-level client SDK orchestrating E2EE workflow
 │
 ├── programs/                      # On-chain smart contract programs
-│   └── bmail-registry/            # Smart contract for key registration and mail dispatch
+│   └── dmail-registry/            # Smart contract for key registration and mail dispatch
 │
 ├── clients/
-│   └── bmail-cli/                 # Reference CLI client for wallet setup, compose, send, inbox
+│   └── dmail-cli/                 # Reference CLI client for wallet setup, compose, send, inbox
 │
 └── tests/
     └── e2e_test.rs                # End-to-end integration test verifying two-user E2EE flow
@@ -65,7 +65,7 @@ bmail/
 
 ---
 
-### Phase 1: Cryptographic Engine (`bmail-crypto`)
+### Phase 1: Cryptographic Engine (`dmail-crypto`)
 **Goal:** Build pure, self-contained cryptographic operations for key derivation, HPKE encapsulation, and AEAD payload encryption.
 
 - **Task 1.1: Key Generation & Derivation:**
@@ -87,13 +87,13 @@ bmail/
   - Verify signature against sender's wallet public key.
 
 **Acceptance Criteria:**
-- 100% test pass rate for `cargo test -p bmail-crypto`.
+- 100% test pass rate for `cargo test -p dmail-crypto`.
 - Known-answer test vectors verify roundtrip encryption and decryption.
 - Unauthorized key attempts return explicit cryptographic errors.
 
 ---
 
-### Phase 2: Protocol Types & Wire Serialization (`bmail-types`)
+### Phase 2: Protocol Types & Wire Serialization (`dmail-types`)
 **Goal:** Define stable, strongly-typed data structures for mail envelopes, manifests, and registry records.
 
 - **Task 2.1: Identity & Key Records:**
@@ -114,7 +114,7 @@ bmail/
 
 ---
 
-### Phase 3: Blockchain Interface & Smart Contract (`bmail-chain`)
+### Phase 3: Blockchain Interface & Smart Contract (`dmail-chain`)
 **Goal:** Implement the on-chain Public Key Infrastructure (PKI) and Mail Dispatch notification engine.
 
 - **Task 3.1: Blockchain Interface Trait:**
@@ -139,7 +139,7 @@ bmail/
 
 ---
 
-### Phase 4: Content-Addressed Storage Adapter (`bmail-storage`)
+### Phase 4: Content-Addressed Storage Adapter (`dmail-storage`)
 **Goal:** Manage off-chain ciphertext storage while ensuring complete server blindness.
 
 - **Task 4.1: Storage Engine Trait:**
@@ -161,7 +161,7 @@ bmail/
 
 ---
 
-### Phase 5: Client SDK (`bmail-sdk`)
+### Phase 5: Client SDK (`dmail-sdk`)
 **Goal:** Unify cryptography, blockchain PKI, and storage into a seamless developer API.
 
 - **Task 5.1: Client Account Setup:**
@@ -192,15 +192,15 @@ bmail/
 
 ---
 
-### Phase 6: Reference CLI & Automated E2E Security Test (`bmail-cli`)
+### Phase 6: Reference CLI & Automated E2E Security Test (`dmail-cli`)
 **Goal:** Deliver a working CLI tool and an automated test suite proving end-to-end security.
 
 - **Task 6.1: Command-Line Interface:**
-  - `bmail init` — Generate wallet and encryption keys.
-  - `bmail register` — Publish public key to blockchain registry.
-  - `bmail send --to <address> --subject <text> --body <text>` — Encrypt and dispatch mail.
-  - `bmail inbox` — List incoming messages.
-  - `bmail read <message-id>` — Decrypt and display mail.
+  - `dmail init` — Generate wallet and encryption keys.
+  - `dmail register` — Publish public key to blockchain registry.
+  - `dmail send --to <address> --subject <text> --body <text>` — Encrypt and dispatch mail.
+  - `dmail inbox` — List incoming messages.
+  - `dmail read <message-id>` — Decrypt and display mail.
 - **Task 6.2: Comprehensive E2E Verification Tests:**
   - **Happy Path:** Alice sends confidential mail to Bob -> Bob reads it.
   - **Attacker Test (Charlie):** Third party with access to blockchain and storage attempts to decrypt -> fails with cryptographic error.

@@ -1,0 +1,16 @@
+[package]
+name = "dmail-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+dmail-sdk = { workspace = true }
+dmail-types = { workspace = true }
+dmail-crypto = { workspace = true }
+dmail-chain = { workspace = true }
+dmail-storage = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }

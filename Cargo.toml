@@ -1,27 +1,27 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/bmail-crypto",
-    "crates/bmail-types",
-    "crates/bmail-storage",
-    "crates/bmail-chain",
-    "crates/bmail-sdk",
-    "clients/bmail-cli",
-    "programs/bmail-registry",
+    "crates/dmail-crypto",
+    "crates/dmail-types",
+    "crates/dmail-storage",
+    "crates/dmail-chain",
+    "crates/dmail-sdk",
+    "clients/dmail-cli",
+    "programs/dmail-registry",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["B-Mail Contributors"]
+authors = ["D-Mail Contributors"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-bmail-crypto = { path = "crates/bmail-crypto" }
-bmail-types = { path = "crates/bmail-types" }
-bmail-storage = { path = "crates/bmail-storage" }
-bmail-chain = { path = "crates/bmail-chain" }
-bmail-sdk = { path = "crates/bmail-sdk" }
+dmail-crypto = { path = "crates/dmail-crypto" }
+dmail-types = { path = "crates/dmail-types" }
+dmail-storage = { path = "crates/dmail-storage" }
+dmail-chain = { path = "crates/dmail-chain" }
+dmail-sdk = { path = "crates/dmail-sdk" }
 
 # Cryptography (Solana & E2EE standards)
 ed25519-dalek = { version = "2.1", features = ["rand_core", "serde"] }

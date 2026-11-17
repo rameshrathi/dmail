@@ -1,0 +1,13 @@
+[package]
+name = "dmail-chain"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+dmail-crypto = { workspace = true }
+dmail-types = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }

@@ -1,0 +1,10 @@
+[package]
+name = "dmail-storage"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+dmail-crypto = { workspace = true }
+thiserror = { workspace = true }
