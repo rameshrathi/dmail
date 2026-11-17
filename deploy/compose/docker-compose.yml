@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dmn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dmn_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-dmn_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_postgres_password_change_in_prod}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dmn_admin} -d ${POSTGRES_DB:-dmn_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2024-05-10T01-41-38Z
+    container_name: dmn-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_dev_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-dev_minio_password_change_in_prod}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  stalwart:
+    image: stalwartlabs/mail-server:v0.8.4
+    container_name: dmn-stalwart
+    restart: unless-stopped
+    ports:
+      - "${STALWART_SMTP_PORT:-2525}:25"
+      - "${STALWART_SUBMISSION_PORT:-2587}:587"
+      - "${STALWART_IMAP_PORT:-2993}:993"
+    volumes:
+      - stalwart_data:/opt/stalwart-mail
+    environment:
+      STALWART_ADMIN_USER: ${STALWART_ADMIN_USER:-admin}
+      STALWART_ADMIN_PASSWORD: ${STALWART_ADMIN_PASSWORD:-dev_stalwart_password_change_in_prod}
+
+volumes:
+  postgres_data:
+  minio_data:
+  stalwart_data:

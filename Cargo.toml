@@ -1,0 +1,45 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/dmn-types",
+    "crates/dmn-encoding",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["DMN Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/dmail-network/dmn"
+
+[workspace.dependencies]
+# Internal workspace crates
+dmn-types = { path = "crates/dmn-types", version = "0.1.0" }
+dmn-encoding = { path = "crates/dmn-encoding", version = "0.1.0" }
+
+# Serialization & Canonical encoding
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+ciborium = { version = "0.2" }
+base64 = { version = "0.22" }
+
+# Error handling
+thiserror = { version = "1.0" }
+anyhow = { version = "1.0" }
+
+# Time & identifiers
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+
+# Cryptography primitives (for upcoming phases)
+ed25519-dalek = { version = "2.1", features = ["rand_core", "serde"] }
+chacha20poly1305 = { version = "0.10", features = ["alloc"] }
+sha2 = { version = "0.10" }
+subtle = { version = "2.5" }
+zeroize = { version = "1.7", features = ["derive", "zeroize_derive"] }
+rand = { version = "0.8" }
+
+# Logging & Diagnostics
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3" }
