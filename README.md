@@ -121,9 +121,33 @@ The implementation follows the structured phases defined in [Plan.md](Plan.md):
 
 Refer to [Plan.md](Plan.md) for detailed task requirements and acceptance criteria.
 
+## 5. Quickstart: Running the POC
+
+### Running the End-to-End Demo
+To run the full multi-party E2EE demonstration (Alice sends confidential mail to Bob, Bob decrypts on his device, and an unauthorized observer Charlie fails to decrypt):
+
+```bash
+cargo run -p bmail-cli -- demo
+```
+
+### Running All Unit and Integration Tests
+```bash
+# Run all workspace unit tests and cryptographic security tests
+cargo test --workspace
+
+# Run code style and lint checks
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+```
+
+### Generating a Solana-Compatible Wallet
+```bash
+cargo run -p bmail-cli -- generate-wallet
+```
+
 ---
 
-## 6. Normative Documents
+## 6. Implementation Architecture Details
 
 - [Protocol.md](Protocol.md) — Comprehensive technical protocol specification.
 - [Plan.md](Plan.md) — Step-by-step engineering execution plan.
